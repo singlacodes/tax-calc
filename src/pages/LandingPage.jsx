@@ -5,115 +5,149 @@ import {
   TrendingUp,
   Wallet,
   ShieldCheck,
-  Building2,
+  ChevronDown,
+  BookOpen,
 } from "lucide-react";
 
 const LandingPage = () => {
+  const scrollToSection = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-gradient-to-b from-blue-50 via-white to-blue-50">
       {/* Hero Section */}
-      <div className="max-w-6xl mx-auto px-4 pt-20 pb-16">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <h1 className="text-5xl font-bold text-blue-900">
-              Smart Tax Planning
-              <span className="block text-blue-600">Made Simple</span>
-            </h1>
-            <p className="text-xl text-gray-600">
-              Navigate your taxes effortlessly with our intelligent calculator.
-              Compare regimes, optimize savings, and make informed decisions.
-            </p>
-            <div className="flex gap-4">
-              <a
-                href="/calculator"
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-                Start Calculator <ArrowRight className="w-5 h-5" />
-              </a>
-              <button className="px-6 py-3 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors">
-                Learn More
-              </button>
+      <main className="w-full min-h-screen flex items-center px-4 pt-16 pb-16">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8">
+              <div className="inline-flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Budget 2025 Updates Available
+              </div>
+              <h1 className="text-6xl font-bold text-blue-900 tracking-tight">
+                Smart Tax Planning
+                <span className="block text-blue-600 mt-2">Made Simple</span>
+              </h1>
+              <p className="text-xl text-gray-600 leading-relaxed">
+                Navigate your taxes effortlessly with our intelligent
+                calculator. Stay updated with Budget 2025 changes and make
+                informed decisions about your tax planning.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                <button
+                  onClick={() => scrollToSection("budget-updates")}
+                  className="cursor-pointer flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl">
+                  Start Calculator <ArrowRight className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => scrollToSection("budget-updates")}
+                  className="cursor-pointer group flex items-center gap-2 px-8 py-4 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 rounded-xl font-medium transition-all">
+                  Explore Updates
+                  <ChevronDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="relative">
-            <div className="absolute -top-8 -left-8 w-64 h-64 bg-blue-100 rounded-full filter blur-3xl opacity-30"></div>
-            <div className="absolute -bottom-8 -right-8 w-64 h-64 bg-blue-200 rounded-full filter blur-3xl opacity-30"></div>
-            <div className="relative bg-white rounded-2xl shadow-xl p-8">
-              <div className="grid grid-cols-2 gap-6">
-                {[
-                  {
-                    icon: Calculator,
-                    title: "Smart Calculations",
-                    color: "text-blue-500",
-                  },
-                  {
-                    icon: TrendingUp,
-                    title: "Regime Comparison",
-                    color: "text-green-500",
-                  },
-                  {
-                    icon: Wallet,
-                    title: "Maximum Savings",
-                    color: "text-purple-500",
-                  },
-                  {
-                    icon: ShieldCheck,
-                    title: "Accurate Results",
-                    color: "text-red-500",
-                  },
-                ].map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex flex-col items-center text-center p-4 rounded-lg bg-gray-50">
-                    <item.icon className={`w-8 h-8 ${item.color} mb-2`} />
-                    <span className="font-medium text-gray-800">
-                      {item.title}
-                    </span>
-                  </div>
-                ))}
+
+            <div className="relative">
+              <div className="absolute -top-8 -left-8 w-72 h-72 bg-blue-100 rounded-full filter blur-3xl opacity-30 animate-pulse"></div>
+              <div className="absolute -bottom-8 -right-8 w-72 h-72 bg-blue-200 rounded-full filter blur-3xl opacity-30 animate-pulse delay-700"></div>
+              <div className="relative bg-white rounded-2xl shadow-xl p-8 backdrop-blur-sm bg-white/80">
+                <div className="grid grid-cols-2 gap-6">
+                  {[
+                    {
+                      icon: Calculator,
+                      title: "Smart Calculations",
+                      description: "Updated with 2025 rules",
+                      color: "text-blue-500",
+                      bgColor: "bg-blue-50",
+                    },
+                    {
+                      icon: TrendingUp,
+                      title: "Regime Comparison",
+                      description: "Old vs New tax regime",
+                      color: "text-green-500",
+                      bgColor: "bg-green-50",
+                    },
+                    {
+                      icon: Wallet,
+                      title: "Maximum Savings",
+                      description: "Optimize your taxes",
+                      color: "text-purple-500",
+                      bgColor: "bg-purple-50",
+                    },
+                    {
+                      icon: ShieldCheck,
+                      title: "Accurate Results",
+                      description: "Latest budget rules",
+                      color: "text-red-500",
+                      bgColor: "bg-red-50",
+                    },
+                  ].map((item, index) => (
+                    <div
+                      key={index}
+                      className={`flex flex-col items-center text-center p-6 rounded-xl ${item.bgColor} transition-transform hover:scale-105`}>
+                      <item.icon className={`w-10 h-10 ${item.color} mb-3`} />
+                      <span className="font-medium text-gray-800 mb-1">
+                        {item.title}
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        {item.description}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
-      {/* Features Section */}
-      <div className="max-w-6xl mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center text-blue-900 mb-12">
-          Why Choose Our Tax Calculator?
-        </h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          {[
-            {
-              icon: Building2,
-              title: "Both Regimes Supported",
-              description:
-                "Compare old and new tax regimes to find the best option for you",
-            },
-            {
-              icon: Calculator,
-              title: "Comprehensive Calculations",
-              description:
-                "Account for all deductions, exemptions, and special provisions",
-            },
-            {
-              icon: ShieldCheck,
-              title: "Up-to-Date Rules",
-              description:
-                "Always current with the latest tax regulations and guidelines",
-            },
-          ].map((feature, index) => (
-            <div
-              key={index}
-              className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
-              <feature.icon className="w-12 h-12 text-blue-500 mb-4" />
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                {feature.title}
+      {/* Budget Updates Section */}
+      <section id="budget-updates" className="w-full py-24 bg-white">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-blue-900 mb-4">
+              Budget 2025 Highlights
+            </h2>
+            <p className="text-xl text-gray-600">
+              Key changes that impact your tax planning
+            </p>
+          </div>
+
+          <div className="grid gap-8">
+            <div className="bg-gradient-to-r from-blue-50 to-white p-8 rounded-2xl border border-blue-100">
+              <h3 className="text-2xl font-semibold text-blue-900 mb-4">
+                New Tax Rebate
               </h3>
-              <p className="text-gray-600">{feature.description}</p>
+              <p className="text-gray-700 leading-relaxed">
+                No income tax for income up to ₹12 Lakhs under the new regime,
+                thanks to an increased rebate of ₹60,000.
+              </p>
             </div>
-          ))}
+
+            <div className="bg-gradient-to-r from-green-50 to-white p-8 rounded-2xl border border-green-100">
+              <h3 className="text-2xl font-semibold text-green-800 mb-4">
+                Standard Deduction
+              </h3>
+              <p className="text-gray-700 leading-relaxed">
+                Enhanced standard deduction of ₹75,000 available under the new
+                tax regime.
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-r from-purple-50 to-white p-8 rounded-2xl border border-purple-100">
+              <h3 className="text-2xl font-semibold text-purple-900 mb-4">
+                Modified Slab Rates
+              </h3>
+              <p className="text-gray-700 leading-relaxed">
+                Restructured tax slabs with reduced rates, providing more
+                savings across different income ranges.
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 };
