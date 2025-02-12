@@ -1,5 +1,5 @@
 import React from "react";
-import { Calculator, Github, Twitter, Linkedin } from "lucide-react";
+import { Calculator } from "lucide-react";
 
 const Footer = () => (
   <footer className="bg-white border-t">
@@ -30,31 +30,9 @@ const Footer = () => (
               Calculator
             </a>
             <a
-              href="/updates"
+              href="/"
               className="text-gray-600 hover:text-blue-600 transition-colors text-sm">
-              Updates
-            </a>
-            <a
-              href="/help"
-              className="text-gray-600 hover:text-blue-600 transition-colors text-sm">
-              Help
-            </a>
-          </div>
-          <div className="flex items-center gap-4 border-l pl-6">
-            <a
-              href="#"
-              className="text-gray-500 hover:text-blue-600 transition-colors">
-              <Twitter className="w-4 h-4" />
-            </a>
-            <a
-              href="#"
-              className="text-gray-500 hover:text-blue-600 transition-colors">
-              <Linkedin className="w-4 h-4" />
-            </a>
-            <a
-              href="#"
-              className="text-gray-500 hover:text-blue-600 transition-colors">
-              <Github className="w-4 h-4" />
+              Home
             </a>
           </div>
         </div>

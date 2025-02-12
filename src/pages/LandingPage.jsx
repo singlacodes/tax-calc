@@ -8,11 +8,13 @@ import {
   ChevronDown,
   BookOpen,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const LandingPage = () => {
   const scrollToSection = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
+  const navigate = useNavigate();
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-gradient-to-b from-blue-50 via-white to-blue-50">
@@ -36,7 +38,7 @@ const LandingPage = () => {
               </p>
               <div className="flex flex-wrap gap-4">
                 <button
-                  onClick={() => scrollToSection("budget-updates")}
+                  onClick={() => navigate("/calculator")}
                   className="cursor-pointer flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl">
                   Start Calculator <ArrowRight className="w-5 h-5" />
                 </button>

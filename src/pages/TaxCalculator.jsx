@@ -33,7 +33,7 @@ const TaxCalculator = () => {
     otherDeductions: 0,
   });
 
-  // Calculate total deductions for old regime with caps
+  // Calculate total deductions with caps
   const calculateTotalDeductions = useCallback(() => {
     const totalSection80C = Math.min(deductions.section80C, 150000);
     const totalSection80D = Math.min(deductions.section80D, 100000);
@@ -41,7 +41,6 @@ const TaxCalculator = () => {
     const totalOtherDeductions =
       deductions.section80G + deductions.otherDeductions;
 
-    // Cap total deductions at 350000
     return Math.min(
       totalSection80C +
         totalSection80D +
@@ -55,17 +54,19 @@ const TaxCalculator = () => {
   const calculateTaxableIncome = useCallback(
     (regime) => {
       const totalIncome =
-        incomeDetails.salary +
-        incomeDetails.hra +
-        incomeDetails.lta +
-        incomeDetails.interestIncome +
-        incomeDetails.rentalIncome;
+        Number(incomeDetails.salary) +
+        Number(incomeDetails.hra) +
+        Number(incomeDetails.lta) +
+        Number(incomeDetails.interestIncome) +
+        Number(incomeDetails.rentalIncome);
 
       if (regime === "new") {
         const standardDeduction = 75000;
         return Math.max(
           0,
-          totalIncome - standardDeduction - incomeDetails.professionalTax
+          totalIncome -
+            standardDeduction -
+            Number(incomeDetails.professionalTax)
         );
       } else {
         const standardDeduction = 50000;
@@ -74,7 +75,7 @@ const TaxCalculator = () => {
           0,
           totalIncome -
             standardDeduction -
-            incomeDetails.professionalTax -
+            Number(incomeDetails.professionalTax) -
             totalDeductions
         );
       }
@@ -143,7 +144,6 @@ const TaxCalculator = () => {
       if (remainingIncome <= 0) break;
     }
 
-    // Apply rebate under section 87A
     let taxAfterRebate = income <= 1275000 ? 0 : tax;
     const cess = taxAfterRebate * 0.04;
     const totalTax = taxAfterRebate + cess;
@@ -165,17 +165,13 @@ const TaxCalculator = () => {
     }).format(amount);
   };
 
-  // Calculate tax for both regimes and determine savings
+  // Calculate tax comparison
   const calculateTaxComparison = useCallback(() => {
     const newRegimeIncome = calculateTaxableIncome("new");
     const oldRegimeIncome = calculateTaxableIncome("old");
 
     const newRegimeTax = calculateNewRegimeTax(newRegimeIncome);
     const oldRegimeTax = calculateOldRegimeTax(oldRegimeIncome);
-
-    const savings = Math.abs(newRegimeTax.totalTax - oldRegimeTax.totalTax);
-    const recommendedRegime =
-      newRegimeTax.totalTax < oldRegimeTax.totalTax ? "new" : "old";
 
     return {
       newRegime: {
@@ -186,66 +182,56 @@ const TaxCalculator = () => {
         taxableIncome: oldRegimeIncome,
         ...oldRegimeTax,
       },
-      savings,
-      recommendedRegime,
     };
   }, [calculateTaxableIncome, calculateNewRegimeTax, calculateOldRegimeTax]);
 
-  const RegimeComparison = () => {
-    const comparison = calculateTaxComparison();
-
-    return (
-      <div className="bg-white rounded-lg shadow-lg p-6 mt-8">
-        <h3 className="text-xl font-semibold mb-6">Tax Regime Comparison</h3>
-        <div className="grid grid-cols-2 gap-8">
-          {/* New Regime Column */}
-          <div className="space-y-4">
-            <h4 className="font-medium text-lg">New Regime</h4>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-600">
-                Taxable Income:{" "}
-                {formatCurrency(comparison.newRegime.taxableIncome)}
-              </p>
-              <p className="text-gray-600">
-                Total Tax: {formatCurrency(comparison.newRegime.totalTax)}
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                Standard Deduction: ₹75,000
-              </p>
+  // Input component for better UX
+  const InputField = ({
+    label,
+    value,
+    onChange,
+    icon: Icon,
+    tooltip,
+    prefix,
+    type = "number",
+    disabled = false,
+  }) => (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+        {label}
+        {tooltip && (
+          <div className="group relative">
+            <Info className="w-4 h-4 text-gray-400 cursor-help" />
+            <div className="hidden group-hover:block absolute z-10 w-64 p-2 bg-gray-800 text-white text-xs rounded-lg -top-2 left-6">
+              {tooltip}
             </div>
           </div>
-
-          {/* Old Regime Column */}
-          <div className="space-y-4">
-            <h4 className="font-medium text-lg">Old Regime</h4>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-600">
-                Taxable Income:{" "}
-                {formatCurrency(comparison.oldRegime.taxableIncome)}
-              </p>
-              <p className="text-gray-600">
-                Total Tax: {formatCurrency(comparison.oldRegime.totalTax)}
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                Total Deductions: {formatCurrency(calculateTotalDeductions())}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Recommendation */}
-        <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-          <h4 className="font-medium text-lg text-blue-800">Recommendation</h4>
-          <p className="text-blue-600 mt-2">
-            The {comparison.recommendedRegime} regime is better for you. You
-            save {formatCurrency(comparison.savings)} by choosing this regime.
-          </p>
-        </div>
+        )}
+      </label>
+      <div className="relative">
+        {prefix && (
+          <span className="absolute left-3 top-3 text-gray-500">{prefix}</span>
+        )}
+        {Icon && (
+          <Icon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+        )}
+        <input
+          type={type}
+          value={value}
+          onChange={onChange}
+          className={`w-full p-3 ${
+            prefix ? "pl-8" : Icon ? "pl-10" : "pl-3"
+          } border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:bg-gray-50 transition-colors ${
+            disabled ? "bg-gray-100 cursor-not-allowed" : ""
+          }`}
+          placeholder={`Enter ${label.toLowerCase()}`}
+          disabled={disabled}
+          min="0"
+        />
       </div>
-    );
-  };
+    </div>
+  );
 
-  // Rest of the component remains similar, with modified steps to include regime selection
   const steps = [
     "Basic Details",
     "Income Details",
@@ -262,21 +248,16 @@ const TaxCalculator = () => {
               <Calculator className="w-6 h-6 text-blue-500" />
               <h2 className="text-xl font-semibold">Basic Details</h2>
             </div>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Age
-                </label>
-                <input
-                  type="number"
-                  value={basicDetails.age}
-                  onChange={(e) =>
-                    setBasicDetails({ ...basicDetails, age: e.target.value })
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your age"
-                />
-              </div>
+            <div className="space-y-6">
+              <InputField
+                label="Age"
+                value={basicDetails.age}
+                onChange={(e) =>
+                  setBasicDetails({ ...basicDetails, age: e.target.value })
+                }
+                tooltip="Your age as of the assessment year"
+                type="number"
+              />
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Financial Year
@@ -289,7 +270,7 @@ const TaxCalculator = () => {
                       financialYear: e.target.value,
                     })
                   }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
                   <option value="2025-26">2025-26</option>
                 </select>
               </div>
@@ -304,32 +285,25 @@ const TaxCalculator = () => {
               <IndianRupee className="w-6 h-6 text-blue-500" />
               <h2 className="text-xl font-semibold">Income Details</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {Object.entries(incomeDetails).map(([key, value]) => (
-                <div key={key} className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    {key
-                      .replace(/([A-Z])/g, " $1")
-                      .replace(/^./, (str) => str.toUpperCase())}
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3 text-gray-500">
-                      ₹
-                    </span>
-                    <input
-                      type="number"
-                      value={value}
-                      onChange={(e) =>
-                        setIncomeDetails({
-                          ...incomeDetails,
-                          [key]: Number(e.target.value),
-                        })
-                      }
-                      className="w-full p-3 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter amount"
-                    />
-                  </div>
-                </div>
+                <InputField
+                  key={key}
+                  label={key
+                    .replace(/([A-Z])/g, " $1")
+                    .replace(/^./, (str) => str.toUpperCase())}
+                  value={value}
+                  onChange={(e) =>
+                    setIncomeDetails({
+                      ...incomeDetails,
+                      [key]: Number(e.target.value),
+                    })
+                  }
+                  prefix="₹"
+                  tooltip={`Enter your ${key
+                    .replace(/([A-Z])/g, " $1")
+                    .toLowerCase()} for the financial year`}
+                />
               ))}
             </div>
           </div>
@@ -340,43 +314,33 @@ const TaxCalculator = () => {
           <div className="bg-white rounded-lg shadow-lg p-6">
             <div className="flex items-center gap-2 mb-6">
               <PieChart className="w-6 h-6 text-blue-500" />
-              <h2 className="text-xl font-semibold">
-                Deductions
-                {selectedRegime === "new" && (
-                  <span className="text-sm font-normal text-gray-500 ml-2">
-                    (Only applicable for old regime)
-                  </span>
-                )}
-              </h2>
+              <h2 className="text-xl font-semibold">Deductions</h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {Object.entries(deductions).map(([key, value]) => (
-                <div key={key} className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
-                    {key
-                      .replace(/([A-Z])/g, " $1")
-                      .replace(/^./, (str) => str.toUpperCase())}
-                    <Info className="w-4 h-4 text-gray-400 cursor-help" />
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-3 text-gray-500">
-                      ₹
-                    </span>
-                    <input
-                      type="number"
-                      value={value}
-                      onChange={(e) =>
-                        setDeductions({
-                          ...deductions,
-                          [key]: Number(e.target.value),
-                        })
-                      }
-                      className="w-full p-3 pl-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter amount"
-                      disabled={selectedRegime === "new"}
-                    />
-                  </div>
-                </div>
+                <InputField
+                  key={key}
+                  label={key
+                    .replace(/([A-Z])/g, " $1")
+                    .replace(/^./, (str) => str.toUpperCase())}
+                  value={value}
+                  onChange={(e) =>
+                    setDeductions({
+                      ...deductions,
+                      [key]: Number(e.target.value),
+                    })
+                  }
+                  prefix="₹"
+                  tooltip={`Maximum deduction under ${key}: ${
+                    key === "section80C"
+                      ? "₹1,50,000"
+                      : key === "section80D"
+                      ? "₹1,00,000"
+                      : key === "section80EEA"
+                      ? "₹1,50,000"
+                      : "As applicable"
+                  }`}
+                />
               ))}
             </div>
           </div>
@@ -384,167 +348,155 @@ const TaxCalculator = () => {
 
       case 4:
         const comparison = calculateTaxComparison();
-        const currentRegime = selectedRegime === "new";
-        const selectedRegimeTax =
-          selectedRegime === "new"
-            ? comparison.newRegime
-            : comparison.oldRegime;
-
         return (
           <div className="space-y-8">
-            {/* Current Regime Summary */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <div className="flex items-center gap-2 mb-6">
-                <Calculator className="w-6 h-6 text-blue-500" />
-                <h2 className="text-xl font-semibold">
-                  Tax Summary ({selectedRegime === "new" ? "New" : "Old"}{" "}
-                  Regime)
-                </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* New Regime Card */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">New Tax Regime</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Taxable Income</span>
+                    <span className="font-medium">
+                      {formatCurrency(comparison.newRegime.taxableIncome)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Tax Amount</span>
+                    <span className="font-medium">
+                      {formatCurrency(comparison.newRegime.totalTax)}
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-6">
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center pb-4 border-b border-gray-200">
-                      <span className="text-gray-600">Gross Total Income</span>
-                      <span className="text-lg font-medium">
-                        {formatCurrency(
-                          incomeDetails.salary +
-                            incomeDetails.hra +
-                            incomeDetails.lta +
-                            incomeDetails.interestIncome +
-                            incomeDetails.rentalIncome
-                        )}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center pb-4 border-b border-gray-200">
-                      <span className="text-gray-600">
-                        Standard Deduction
-                        <span className="text-sm text-gray-500 ml-2">
-                          ({selectedRegime === "new" ? "₹75,000" : "₹50,000"})
-                        </span>
-                      </span>
-                      <span className="text-lg font-medium">
-                        {formatCurrency(
-                          selectedRegime === "new" ? 75000 : 50000
-                        )}
-                      </span>
-                    </div>
-
-                    {selectedRegime === "old" && (
-                      <div className="flex justify-between items-center pb-4 border-b border-gray-200">
-                        <span className="text-gray-600">
-                          Chapter VI-A Deductions
-                        </span>
-                        <span className="text-lg font-medium">
-                          {formatCurrency(calculateTotalDeductions())}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-center pb-4 border-b border-gray-200">
-                      <span className="text-gray-600">Professional Tax</span>
-                      <span className="text-lg font-medium">
-                        {formatCurrency(incomeDetails.professionalTax)}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center pb-4 border-b border-gray-200">
-                      <span className="text-gray-600">Net Taxable Income</span>
-                      <span className="text-lg font-medium">
-                        {formatCurrency(selectedRegimeTax.taxableIncome)}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 pt-4">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">Basic Tax</span>
-                        <span>
-                          {formatCurrency(selectedRegimeTax.basicTax)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">Less: 87A Rebate</span>
-                        <span className="text-red-600">
-                          -{formatCurrency(selectedRegimeTax.rebate)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">
-                          Health & Education Cess (4%)
-                        </span>
-                        <span>{formatCurrency(selectedRegimeTax.cess)}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg mt-4">
-                      <span className="text-blue-800 font-medium">
-                        Final Tax Payable
-                      </span>
-                      <span className="text-2xl font-bold text-blue-800">
-                        {formatCurrency(selectedRegimeTax.totalTax)}
-                      </span>
-                    </div>
+              {/* Old Regime Card */}
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Old Tax Regime</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Taxable Income</span>
+                    <span className="font-medium">
+                      {formatCurrency(comparison.oldRegime.taxableIncome)}
+                    </span>
                   </div>
-                </div>
-
-                {/* Slab-wise Breakdown */}
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="font-medium mb-4 text-gray-800">
-                    Tax Calculation Breakdown
-                  </h3>
-                  <div className="space-y-3">
-                    {selectedRegimeTax.breakdown.map((slab, index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-4 text-sm gap-4">
-                        <span className="text-gray-600">{slab.range}</span>
-                        <span>{formatCurrency(slab.income)}</span>
-                        <span>{slab.rate}%</span>
-                        <span className="text-right">
-                          {formatCurrency(slab.tax)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Notes and Info */}
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <h3 className="font-medium mb-4 text-gray-800">
-                    Important Notes
-                  </h3>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <p>
-                      • Health & Education Cess of 4% is applicable on the tax
-                      amount
-                    </p>
-                    <p>
-                      • Standard Deduction of{" "}
-                      {selectedRegime === "new" ? "₹75,000" : "₹50,000"} is
-                      applied
-                    </p>
-                    <p>• Tax rebate under Section 87A up to ₹12,75,000</p>
-                    {selectedRegime === "old" && (
-                      <>
-                        <p>• Maximum deduction under Section 80C: ₹1,50,000</p>
-                        <p>• Maximum deduction under Section 80D: ₹1,00,000</p>
-                        <p>
-                          • Maximum deduction under Section 80EEA: ₹1,50,000
-                        </p>
-                        <p>
-                          • Total Chapter VI-A deductions capped at ₹3,50,000
-                        </p>
-                      </>
-                    )}
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Tax Amount</span>
+                    <span className="font-medium">
+                      {formatCurrency(comparison.oldRegime.totalTax)}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Regime Comparison */}
-            <RegimeComparison />
+            {/* Detailed Breakdown */}
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h3 className="text-lg font-semibold mb-4">
+                Detailed Tax Breakdown
+              </h3>
+              <div className="space-y-6">
+                {["new", "old"].map((regime) => {
+                  const taxData =
+                    regime === "new"
+                      ? comparison.newRegime
+                      : comparison.oldRegime;
+                  return (
+                    <div key={regime} className="space-y-4">
+                      <h4 className="font-medium">
+                        {regime === "new" ? "New" : "Old"} Regime Calculation
+                      </h4>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        {taxData.breakdown.map((slab, index) => (
+                          <div
+                            key={index}
+                            className="grid grid-cols-4 gap-4 text-sm py-2">
+                            <span>{slab.range}</span>
+                            <span>{formatCurrency(slab.income)}</span>
+                            <span>{slab.rate}%</span>
+                            <span className="text-right">
+                              {formatCurrency(slab.tax)}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <span>Basic Tax</span>
+                            <span className="text-right">
+                              {formatCurrency(taxData.basicTax)}
+                            </span>
+                            <span>Rebate (87A)</span>
+                            <span className="text-right text-red-600">
+                              -{formatCurrency(taxData.rebate)}
+                            </span>
+                            <span>Health & Education Cess (4%)</span>
+                            <span className="text-right">
+                              {formatCurrency(taxData.cess)}
+                            </span>
+                            <span className="font-medium">Total Tax</span>
+                            <span className="text-right font-medium">
+                              {formatCurrency(taxData.totalTax)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Recommendation Card */}
+            <div className="bg-blue-50 rounded-lg shadow-lg p-6">
+              <h3 className="text-lg font-semibold text-blue-800 mb-4">
+                Tax Saving Recommendation
+              </h3>
+              <div className="space-y-4">
+                <p className="text-blue-700">
+                  {comparison.newRegime.totalTax <
+                  comparison.oldRegime.totalTax ? (
+                    <>
+                      The New Tax Regime is better for you. You can save{" "}
+                      {formatCurrency(
+                        comparison.oldRegime.totalTax -
+                          comparison.newRegime.totalTax
+                      )}{" "}
+                      annually by choosing the new regime.
+                    </>
+                  ) : (
+                    <>
+                      The Old Tax Regime is better for you. You can save{" "}
+                      {formatCurrency(
+                        comparison.newRegime.totalTax -
+                          comparison.oldRegime.totalTax
+                      )}{" "}
+                      annually by choosing the old regime.
+                    </>
+                  )}
+                </p>
+                <div className="bg-white rounded-lg p-4 text-sm text-gray-600">
+                  <h4 className="font-medium text-gray-800 mb-2">
+                    Key Points:
+                  </h4>
+                  <ul className="space-y-2">
+                    <li>
+                      • New regime offers a higher standard deduction of ₹75,000
+                    </li>
+                    <li>
+                      • Old regime allows additional deductions under Chapter
+                      VI-A
+                    </li>
+                    <li>
+                      • Tax rebate under Section 87A applies up to ₹12,75,000
+                    </li>
+                    <li>
+                      • Consider your investment and insurance needs while
+                      choosing the regime
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         );
     }
@@ -580,14 +532,13 @@ const TaxCalculator = () => {
   );
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl min-h-screen pt-32 mx-auto p-6">
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-blue-900 mb-2">
           Income Tax Calculator 2025-26
         </h1>
         <p className="text-gray-600">
-          Compare and calculate your income tax under both old and new tax
-          regimes
+          Compare your tax liability under both old and new tax regimes
         </p>
       </div>
 
@@ -598,13 +549,13 @@ const TaxCalculator = () => {
         <button
           onClick={() => setStep((prev) => Math.max(1, prev - 1))}
           disabled={step === 1}
-          className="px-6 py-3 flex items-center gap-2 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 transition-colors">
+          className="px-6 cursor-pointer py-3 flex items-center gap-2 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
           <ArrowLeft className="w-4 h-4" /> Previous
         </button>
         <button
           onClick={() => setStep((prev) => Math.min(4, prev + 1))}
           disabled={step === 4}
-          className="px-6 py-3 flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg disabled:opacity-50 transition-colors">
+          className="px-6 cursor-pointer py-3 flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
           {step === 3 ? "Calculate" : "Next"} <ArrowRight className="w-4 h-4" />
         </button>
       </div>
