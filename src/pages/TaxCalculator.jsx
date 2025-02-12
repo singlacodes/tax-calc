@@ -60,6 +60,17 @@ const TaxCalculator = () => {
     );
   }, [deductions]);
 
+  const calculateTotalIncome = useCallback(() => {
+    const totalIncome =
+      Number(incomeDetails.salary) +
+      Number(incomeDetails.hra) +
+      Number(incomeDetails.lta) +
+      Number(incomeDetails.interestIncome) +
+      Number(incomeDetails.rentalIncome);
+
+    return totalIncome;
+  }, [incomeDetails]);
+
   // Calculate taxable income for both regimes
   const calculateTaxableIncome = useCallback(
     (regime) => {
@@ -381,7 +392,7 @@ const TaxCalculator = () => {
     const chartData = [
       {
         name: "Total Income",
-        value: comparison.newRegime.taxableIncome + calculateTotalDeductions(),
+        value: calculateTotalIncome(),
         color: "#60A5FA",
       },
       {
@@ -465,10 +476,7 @@ const TaxCalculator = () => {
                   Total Income
                 </h3>
                 <div className="text-3xl font-bold text-blue-700">
-                  {formatCurrency(
-                    comparison.newRegime.taxableIncome +
-                      calculateTotalDeductions()
-                  )}
+                  {formatCurrency(calculateTotalIncome())}
                 </div>
               </div>
 
