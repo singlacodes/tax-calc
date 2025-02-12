@@ -51,12 +51,14 @@ const TaxCalculator = () => {
     const totalOtherDeductions =
       deductions.section80G + deductions.otherDeductions;
 
-    return Math.min(
-      totalSection80C +
-        totalSection80D +
-        totalSection80EEA +
-        totalOtherDeductions,
-      350000
+    return (
+      Math.min(
+        totalSection80C +
+          totalSection80D +
+          totalSection80EEA +
+          totalOtherDeductions,
+        350000
+      ) + 75000
     );
   }, [deductions]);
 
@@ -393,7 +395,7 @@ const TaxCalculator = () => {
       {
         name: "Total Income",
         value: calculateTotalIncome(),
-        color: "#60A5FA",
+        color: "#818CF8",
       },
       {
         name: "Taxable Income",
@@ -403,168 +405,172 @@ const TaxCalculator = () => {
       {
         name: "Deductions",
         value: calculateTotalDeductions(),
-        color: "#F59E0B",
+        color: "#FBBF24",
       },
       {
         name: "Tax Payable",
         value: comparison.newRegime.totalTax,
-        color: "#EF4444",
+        color: "#F87171",
       },
     ];
 
+    const MetricCard = ({ title, value, bgColor, textColor, borderColor }) => (
+      <div
+        className={`${bgColor} p-6 rounded-2xl border-l-4 ${borderColor} hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1`}>
+        <h3 className={`text-lg font-semibold mb-3 ${textColor}`}>{title}</h3>
+        <div className={`text-3xl font-bold ${textColor} tracking-tight`}>
+          {value}
+        </div>
+      </div>
+    );
+
+    const DetailCard = ({ title, items }) => (
+      <div className="bg-white/50 backdrop-blur-sm p-6 rounded-2xl transition-all duration-300">
+        <h3 className="text-md font-semibold mb-4 text-gray-800">{title}</h3>
+        <div className="space-y-0">
+          {items.map((item, index) => (
+            <div
+              key={index}
+              className="flex justify-between items-center p-4 bg-white rounded-xl hover:bg-gray-50 transition-colors">
+              <span className="text-gray-700 text-sm font-medium">
+                {item.label}
+              </span>
+              <span className="font-semibold text-sm text-gray-900">
+                {item.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+
     return (
-      <div className="space-y-6">
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-            <h2 className="text-2xl font-semibold text-gray-800">
-              Summary - FY 2025-2026 (AY 2026-2027)
+      <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-2xl shadow-xl p-6 lg:p-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+            <h2 className="text-2xl font-bold text-gray-900">
+              Tax Summary - FY 2025-2026
             </h2>
             <button
               onClick={() => setStep(1)}
-              className="text-blue-500 cursor-pointer hover:text-blue-600 font-medium transition-colors">
+              className="cursor-pointer inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium">
               Recalculate
             </button>
           </div>
 
-          <div className="flex gap-8 flex-col md:flex-row">
-            <div className="w-full md:w-1/2">
-              <div className="h-72 p-4 bg-gray-50 rounded-xl">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={chartData}
-                    layout="vertical"
-                    margin={{ top: 10, right: 10, left: 40, bottom: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                    <XAxis
-                      type="number"
-                      tickFormatter={(value) => `₹${value.toLocaleString()}`}
-                      fontSize={12}
-                    />
-                    <YAxis
-                      dataKey="name"
-                      type="category"
-                      fontSize={12}
-                      width={100}
-                    />
-                    <RechartsTooltip
-                      formatter={(value) => `₹${value.toLocaleString()}`}
-                      contentStyle={{
-                        backgroundColor: "#1F2937",
-                        border: "none",
-                        borderRadius: "8px",
-                        color: "white",
-                        padding: "8px",
-                      }}
-                    />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                      {chartData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={entry.color}
-                          className="hover:opacity-80 transition-opacity"
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+          <div className="grid lg:grid-cols-2 gap-8">
+            <div className="h-80 bg-gray-50 rounded-2xl p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  layout="vertical"
+                  margin={{ top: 20, right: 20, left: 40, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                  <XAxis
+                    type="number"
+                    tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                    fontSize={12}
+                  />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    fontSize={12}
+                    width={120}
+                  />
+                  <RechartsTooltip
+                    formatter={(value) => `₹${value.toLocaleString()}`}
+                    contentStyle={{
+                      backgroundColor: "#1F2937",
+                      border: "none",
+                      borderRadius: "12px",
+                      color: "white",
+                      padding: "12px",
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                    {chartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                        className="hover:opacity-90 transition-opacity"
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
 
-            <div className="w-full md:w-1/2 space-y-6">
-              <div className="bg-blue-50 p-6 rounded-xl border-l-4 border-blue-500 hover:shadow-md transition-all duration-300">
-                <h3 className="text-lg font-semibold mb-4 text-blue-900">
-                  Total Income
-                </h3>
-                <div className="text-3xl font-bold text-blue-700">
-                  {formatCurrency(calculateTotalIncome())}
-                </div>
-              </div>
-
-              <div className="bg-green-50 p-6 rounded-xl border-l-4 border-green-500 hover:shadow-md transition-all duration-300">
-                <h3 className="text-lg font-semibold mb-4 text-green-900">
-                  Taxable Income
-                </h3>
-                <div className="text-3xl font-bold text-green-700">
-                  {formatCurrency(comparison.newRegime.taxableIncome)}
-                </div>
-              </div>
-
-              <div className="bg-red-50 p-6 rounded-xl border-l-4 border-red-500 hover:shadow-md transition-all duration-300">
-                <h3 className="text-lg font-semibold mb-4 text-red-900">
-                  Tax Payable
-                </h3>
-                <div className="text-3xl font-bold text-red-700">
-                  {formatCurrency(comparison.newRegime.totalTax)}
-                </div>
-              </div>
+            <div className="grid gap-6">
+              <MetricCard
+                title="Total Income"
+                value={formatCurrency(calculateTotalIncome())}
+                bgColor="bg-indigo-50"
+                textColor="text-indigo-900"
+                borderColor="border-indigo-500"
+              />
+              <MetricCard
+                title="Taxable Income"
+                value={formatCurrency(comparison.newRegime.taxableIncome)}
+                bgColor="bg-emerald-50"
+                textColor="text-emerald-900"
+                borderColor="border-emerald-500"
+              />
+              <MetricCard
+                title="Tax Payable"
+                value={formatCurrency(comparison.newRegime.totalTax)}
+                bgColor="bg-red-50"
+                textColor="text-red-900"
+                borderColor="border-red-500"
+              />
             </div>
           </div>
 
-          <div className="mt-8 grid grid-cols-2 gap-8">
-            <div className="bg-gray-50 p-6 rounded-xl hover:shadow-md transition-all duration-300">
-              <h3 className="text-lg font-semibold mb-6 text-gray-800">
-                Exemption and Deduction
-              </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                  <span className="text-gray-600">Exempt Allowances</span>
-                  <span className="font-medium">{formatCurrency(0)}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                  <span className="text-gray-600">Standard Deductions</span>
-                  <span className="font-medium">{formatCurrency(75000)}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                  <span className="text-gray-600">Chapter VI A Deductions</span>
-                  <span className="font-medium">
-                    {formatCurrency(calculateTotalDeductions())}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 p-6 rounded-xl hover:shadow-md transition-all duration-300">
-              <h3 className="text-lg font-semibold mb-6 text-gray-800">
-                Tax Calculation
-              </h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                  <span className="text-gray-600">Income Tax</span>
-                  <span className="font-medium">
-                    {formatCurrency(comparison.newRegime.basicTax)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                  <span className="text-gray-600">Surcharge</span>
-                  <span className="font-medium">{formatCurrency(0)}</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                  <span className="text-gray-600">
-                    Health and Education Cess
-                  </span>
-                  <span className="font-medium">
-                    {formatCurrency(comparison.newRegime.cess)}
-                  </span>
-                </div>
-              </div>
-            </div>
+          <div className="mt-8 grid md:grid-cols-2 gap-8">
+            <DetailCard
+              title="Exemptions and Deductions"
+              items={[
+                { label: "Exempt Allowances", value: formatCurrency(0) },
+                { label: "Standard Deductions", value: formatCurrency(75000) },
+                {
+                  label: "Chapter VI A Deductions",
+                  value: formatCurrency(calculateTotalDeductions()),
+                },
+              ]}
+            />
+            <DetailCard
+              title="Tax Calculation"
+              items={[
+                {
+                  label: "Income Tax",
+                  value: formatCurrency(comparison.newRegime.basicTax),
+                },
+                { label: "Surcharge", value: formatCurrency(0) },
+                {
+                  label: "Health and Education Cess",
+                  value: formatCurrency(comparison.newRegime.cess),
+                },
+              ]}
+            />
           </div>
 
-          <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-xl border border-green-200">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-full">
-                <PieChart className="w-5 h-5 text-green-600" />
+          <div className="mt-8">
+            <div className="bg-gradient-to-r from-emerald-50 via-blue-50 to-indigo-50 p-6 rounded-2xl border border-emerald-200">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 rounded-full">
+                  <PieChart className="w-6 h-6 text-emerald-600" />
+                </div>
+                <span className="text-emerald-800 font-medium">
+                  New Tax Regime is recommended for you. It would save you{" "}
+                  {formatCurrency(
+                    comparison.oldRegime.totalTax -
+                      comparison.newRegime.totalTax
+                  )}{" "}
+                  in taxes.
+                </span>
               </div>
-              <span className="text-green-800 font-medium">
-                New Tax Regime is recommended for you. It would save you{" "}
-                {formatCurrency(
-                  comparison.oldRegime.totalTax - comparison.newRegime.totalTax
-                )}{" "}
-                in taxes.
-              </span>
-            </div>
-            <div className="mt-3 text-sm text-gray-600 pl-10">
-              ITR filing due date: July 31, 2026 (subject to change)
+              <div className="mt-3 text-sm text-gray-600 pl-11">
+                ITR filing due date: July 31, 2026 (subject to change)
+              </div>
             </div>
           </div>
         </div>
