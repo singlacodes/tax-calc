@@ -19,7 +19,7 @@ const LandingPage = () => {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-gradient-to-b from-blue-50 via-white to-blue-50">
       {/* Hero Section */}
-      <main className="w-full min-h-screen flex items-center px-4 pt-16 pb-16">
+      <main className="w-full min-h-screen flex items-center px-4 pt-32 md:pt-16 pb-16">
         <div className="max-w-7xl mx-auto w-full">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
