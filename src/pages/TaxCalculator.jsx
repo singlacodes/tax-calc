@@ -7,6 +7,16 @@ import {
   PieChart,
   Info,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  Cell,
+  Tooltip as RechartsTooltip,
+} from "recharts";
 
 const TaxCalculator = () => {
   const [step, setStep] = useState(1);
@@ -165,6 +175,75 @@ const TaxCalculator = () => {
     }).format(amount);
   };
 
+  const formatIndianNumber = (value) => {
+    // Remove any existing commas and non-numeric characters
+    const number = value.replace(/[^\d]/g, "");
+    if (!number) return "";
+    const lastThree = number.substring(number.length - 3);
+    const otherNumbers = number.substring(0, number.length - 3);
+    const formatted = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+    return formatted ? formatted + "," + lastThree : lastThree;
+  };
+
+  const InputField = ({
+    label,
+    value,
+    onChange,
+    icon: Icon,
+    tooltip,
+    prefix,
+    type = "text",
+    disabled = false,
+  }) => {
+    // Fix cursor position issue by maintaining raw value in state
+    const [inputValue, setInputValue] = useState(value.toString());
+
+    // Handle input change while maintaining cursor position
+    const handleChange = (e) => {
+      const rawValue = e.target.value.replace(/[^\d]/g, "");
+      setInputValue(rawValue);
+      onChange({ target: { value: rawValue } });
+    };
+
+    return (
+      <div className="space-y-2 group transition-all duration-200">
+        <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+          {label}
+          {tooltip && (
+            <div className="group/tooltip relative">
+              <Info className="w-4 h-4 text-blue-400 cursor-help transition-colors group-hover/tooltip:text-blue-500" />
+              <div className="hidden group-hover/tooltip:block absolute z-10 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg -top-2 left-6 shadow-xl">
+                {tooltip}
+              </div>
+            </div>
+          )}
+        </label>
+        <div className="relative">
+          {prefix && (
+            <span className="absolute left-3 top-3 text-gray-500 group-hover:text-gray-700 transition-colors">
+              {prefix}
+            </span>
+          )}
+          {Icon && (
+            <Icon className="absolute left-3 top-3 w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+          )}
+          <input
+            type="text"
+            value={formatIndianNumber(inputValue)}
+            onChange={handleChange}
+            className={`w-full p-3 ${
+              prefix ? "pl-8" : Icon ? "pl-10" : "pl-3"
+            } border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white hover:bg-blue-50/30 transition-all duration-200 ${
+              disabled ? "bg-gray-100 cursor-not-allowed" : ""
+            } outline-none shadow-sm hover:shadow-md`}
+            placeholder={`Enter ${label.toLowerCase()}`}
+            disabled={disabled}
+          />
+        </div>
+      </div>
+    );
+  };
+
   // Calculate tax comparison
   const calculateTaxComparison = useCallback(() => {
     const newRegimeIncome = calculateTaxableIncome("new");
@@ -185,52 +264,13 @@ const TaxCalculator = () => {
     };
   }, [calculateTaxableIncome, calculateNewRegimeTax, calculateOldRegimeTax]);
 
-  // Input component for better UX
-  const InputField = ({
-    label,
-    value,
-    onChange,
-    icon: Icon,
-    tooltip,
-    prefix,
-    type = "number",
-    disabled = false,
-  }) => (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
-        {label}
-        {tooltip && (
-          <div className="group relative">
-            <Info className="w-4 h-4 text-gray-400 cursor-help" />
-            <div className="hidden group-hover:block absolute z-10 w-64 p-2 bg-gray-800 text-white text-xs rounded-lg -top-2 left-6">
-              {tooltip}
-            </div>
-          </div>
-        )}
-      </label>
-      <div className="relative">
-        {prefix && (
-          <span className="absolute left-3 top-3 text-gray-500">{prefix}</span>
-        )}
-        {Icon && (
-          <Icon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-        )}
-        <input
-          type={type}
-          value={value}
-          onChange={onChange}
-          className={`w-full p-3 ${
-            prefix ? "pl-8" : Icon ? "pl-10" : "pl-3"
-          } border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:bg-gray-50 transition-colors ${
-            disabled ? "bg-gray-100 cursor-not-allowed" : ""
-          }`}
-          placeholder={`Enter ${label.toLowerCase()}`}
-          disabled={disabled}
-          min="0"
-        />
-      </div>
-    </div>
-  );
+  const handleNumberInput = (e, setter, field) => {
+    const rawValue = e.target.value;
+    setter((prev) => ({
+      ...prev,
+      [field]: rawValue,
+    }));
+  };
 
   const steps = [
     "Basic Details",
@@ -239,288 +279,312 @@ const TaxCalculator = () => {
     "Tax Summary",
   ];
 
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Calculator className="w-6 h-6 text-blue-500" />
-              <h2 className="text-xl font-semibold">Basic Details</h2>
-            </div>
-            <div className="space-y-6">
-              <InputField
-                label="Age"
-                value={basicDetails.age}
-                onChange={(e) =>
-                  setBasicDetails({ ...basicDetails, age: e.target.value })
-                }
-                tooltip="Your age as of the assessment year"
-                type="number"
-              />
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Financial Year
-                </label>
-                <select
-                  value={basicDetails.financialYear}
-                  onChange={(e) =>
-                    setBasicDetails({
-                      ...basicDetails,
-                      financialYear: e.target.value,
-                    })
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
-                  <option value="2025-26">2025-26</option>
-                </select>
+  const renderBasicDetails = () => (
+    <div className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow duration-300">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="p-3 bg-blue-100 rounded-lg">
+          <Calculator className="w-6 h-6 text-blue-600" />
+        </div>
+        <h2 className="text-2xl font-semibold text-gray-800">Basic Details</h2>
+      </div>
+      <div className="space-y-8">
+        <InputField
+          label="Age"
+          value={basicDetails.age}
+          onChange={(e) => handleNumberInput(e, setBasicDetails, "age")}
+          tooltip="Your age as of the assessment year"
+          type="text"
+        />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Financial Year
+          </label>
+          <select
+            value={basicDetails.financialYear}
+            onChange={(e) =>
+              setBasicDetails({
+                ...basicDetails,
+                financialYear: e.target.value,
+              })
+            }
+            className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white hover:bg-blue-50/30 transition-all duration-200">
+            <option value="2025-26">2025-26</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderIncomeDetails = () => (
+    <div className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow duration-300">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="p-3 bg-green-100 rounded-lg">
+          <IndianRupee className="w-6 h-6 text-green-600" />
+        </div>
+        <h2 className="text-2xl font-semibold text-gray-800">Income Details</h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {Object.entries(incomeDetails).map(([key, value]) => (
+          <InputField
+            key={key}
+            label={key
+              .replace(/([A-Z])/g, " $1")
+              .replace(/^./, (str) => str.toUpperCase())}
+            value={value}
+            onChange={(e) => handleNumberInput(e, setIncomeDetails, key)}
+            prefix="₹"
+            tooltip={`Enter your ${key
+              .replace(/([A-Z])/g, " $1")
+              .toLowerCase()} for the financial year`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderDeductions = () => (
+    <div className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow duration-300">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="p-3 bg-purple-100 rounded-lg">
+          <PieChart className="w-6 h-6 text-purple-600" />
+        </div>
+        <h2 className="text-2xl font-semibold text-gray-800">Deductions</h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {Object.entries(deductions).map(([key, value]) => (
+          <InputField
+            key={key}
+            label={key
+              .replace(/([A-Z])/g, " $1")
+              .replace(/^./, (str) => str.toUpperCase())}
+            value={value}
+            onChange={(e) => handleNumberInput(e, setDeductions, key)}
+            prefix="₹"
+            tooltip={`Maximum deduction under ${key}: ${
+              key === "section80C"
+                ? "₹1,50,000"
+                : key === "section80D"
+                ? "₹1,00,000"
+                : key === "section80EEA"
+                ? "₹1,50,000"
+                : "As applicable"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderTaxSummary = () => {
+    const comparison = calculateTaxComparison();
+
+    const chartData = [
+      {
+        name: "Total Income",
+        value: comparison.newRegime.taxableIncome + calculateTotalDeductions(),
+        color: "#60A5FA",
+      },
+      {
+        name: "Taxable Income",
+        value: comparison.newRegime.taxableIncome,
+        color: "#34D399",
+      },
+      {
+        name: "Deductions",
+        value: calculateTotalDeductions(),
+        color: "#F59E0B",
+      },
+      {
+        name: "Tax Payable",
+        value: comparison.newRegime.totalTax,
+        color: "#EF4444",
+      },
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+            <h2 className="text-2xl font-semibold text-gray-800">
+              Summary - FY 2025-2026 (AY 2026-2027)
+            </h2>
+            <button
+              onClick={() => setStep(1)}
+              className="text-blue-500 cursor-pointer hover:text-blue-600 font-medium transition-colors">
+              Recalculate
+            </button>
+          </div>
+
+          <div className="flex gap-8 flex-col md:flex-row">
+            <div className="w-full md:w-1/2">
+              <div className="h-72 p-4 bg-gray-50 rounded-xl">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={chartData}
+                    layout="vertical"
+                    margin={{ top: 10, right: 10, left: 40, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis
+                      type="number"
+                      tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                      fontSize={12}
+                    />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      fontSize={12}
+                      width={100}
+                    />
+                    <RechartsTooltip
+                      formatter={(value) => `₹${value.toLocaleString()}`}
+                      contentStyle={{
+                        backgroundColor: "#1F2937",
+                        border: "none",
+                        borderRadius: "8px",
+                        color: "white",
+                        padding: "8px",
+                      }}
+                    />
+                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                      {chartData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.color}
+                          className="hover:opacity-80 transition-opacity"
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
-          </div>
-        );
 
-      case 2:
-        return (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <IndianRupee className="w-6 h-6 text-blue-500" />
-              <h2 className="text-xl font-semibold">Income Details</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {Object.entries(incomeDetails).map(([key, value]) => (
-                <InputField
-                  key={key}
-                  label={key
-                    .replace(/([A-Z])/g, " $1")
-                    .replace(/^./, (str) => str.toUpperCase())}
-                  value={value}
-                  onChange={(e) =>
-                    setIncomeDetails({
-                      ...incomeDetails,
-                      [key]: Number(e.target.value),
-                    })
-                  }
-                  prefix="₹"
-                  tooltip={`Enter your ${key
-                    .replace(/([A-Z])/g, " $1")
-                    .toLowerCase()} for the financial year`}
-                />
-              ))}
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <PieChart className="w-6 h-6 text-blue-500" />
-              <h2 className="text-xl font-semibold">Deductions</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {Object.entries(deductions).map(([key, value]) => (
-                <InputField
-                  key={key}
-                  label={key
-                    .replace(/([A-Z])/g, " $1")
-                    .replace(/^./, (str) => str.toUpperCase())}
-                  value={value}
-                  onChange={(e) =>
-                    setDeductions({
-                      ...deductions,
-                      [key]: Number(e.target.value),
-                    })
-                  }
-                  prefix="₹"
-                  tooltip={`Maximum deduction under ${key}: ${
-                    key === "section80C"
-                      ? "₹1,50,000"
-                      : key === "section80D"
-                      ? "₹1,00,000"
-                      : key === "section80EEA"
-                      ? "₹1,50,000"
-                      : "As applicable"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        );
-
-      case 4:
-        const comparison = calculateTaxComparison();
-        return (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* New Regime Card */}
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">New Tax Regime</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Taxable Income</span>
-                    <span className="font-medium">
-                      {formatCurrency(comparison.newRegime.taxableIncome)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Tax Amount</span>
-                    <span className="font-medium">
-                      {formatCurrency(comparison.newRegime.totalTax)}
-                    </span>
-                  </div>
+            <div className="w-full md:w-1/2 space-y-6">
+              <div className="bg-blue-50 p-6 rounded-xl border-l-4 border-blue-500 hover:shadow-md transition-all duration-300">
+                <h3 className="text-lg font-semibold mb-4 text-blue-900">
+                  Total Income
+                </h3>
+                <div className="text-3xl font-bold text-blue-700">
+                  {formatCurrency(
+                    comparison.newRegime.taxableIncome +
+                      calculateTotalDeductions()
+                  )}
                 </div>
               </div>
 
-              {/* Old Regime Card */}
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Old Tax Regime</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Taxable Income</span>
-                    <span className="font-medium">
-                      {formatCurrency(comparison.oldRegime.taxableIncome)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Tax Amount</span>
-                    <span className="font-medium">
-                      {formatCurrency(comparison.oldRegime.totalTax)}
-                    </span>
-                  </div>
+              <div className="bg-green-50 p-6 rounded-xl border-l-4 border-green-500 hover:shadow-md transition-all duration-300">
+                <h3 className="text-lg font-semibold mb-4 text-green-900">
+                  Taxable Income
+                </h3>
+                <div className="text-3xl font-bold text-green-700">
+                  {formatCurrency(comparison.newRegime.taxableIncome)}
+                </div>
+              </div>
+
+              <div className="bg-red-50 p-6 rounded-xl border-l-4 border-red-500 hover:shadow-md transition-all duration-300">
+                <h3 className="text-lg font-semibold mb-4 text-red-900">
+                  Tax Payable
+                </h3>
+                <div className="text-3xl font-bold text-red-700">
+                  {formatCurrency(comparison.newRegime.totalTax)}
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Detailed Breakdown */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h3 className="text-lg font-semibold mb-4">
-                Detailed Tax Breakdown
-              </h3>
-              <div className="space-y-6">
-                {["new", "old"].map((regime) => {
-                  const taxData =
-                    regime === "new"
-                      ? comparison.newRegime
-                      : comparison.oldRegime;
-                  return (
-                    <div key={regime} className="space-y-4">
-                      <h4 className="font-medium">
-                        {regime === "new" ? "New" : "Old"} Regime Calculation
-                      </h4>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        {taxData.breakdown.map((slab, index) => (
-                          <div
-                            key={index}
-                            className="grid grid-cols-4 gap-4 text-sm py-2">
-                            <span>{slab.range}</span>
-                            <span>{formatCurrency(slab.income)}</span>
-                            <span>{slab.rate}%</span>
-                            <span className="text-right">
-                              {formatCurrency(slab.tax)}
-                            </span>
-                          </div>
-                        ))}
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <span>Basic Tax</span>
-                            <span className="text-right">
-                              {formatCurrency(taxData.basicTax)}
-                            </span>
-                            <span>Rebate (87A)</span>
-                            <span className="text-right text-red-600">
-                              -{formatCurrency(taxData.rebate)}
-                            </span>
-                            <span>Health & Education Cess (4%)</span>
-                            <span className="text-right">
-                              {formatCurrency(taxData.cess)}
-                            </span>
-                            <span className="font-medium">Total Tax</span>
-                            <span className="text-right font-medium">
-                              {formatCurrency(taxData.totalTax)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Recommendation Card */}
-            <div className="bg-blue-50 rounded-lg shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-blue-800 mb-4">
-                Tax Saving Recommendation
+          <div className="mt-8 grid grid-cols-2 gap-8">
+            <div className="bg-gray-50 p-6 rounded-xl hover:shadow-md transition-all duration-300">
+              <h3 className="text-lg font-semibold mb-6 text-gray-800">
+                Exemption and Deduction
               </h3>
               <div className="space-y-4">
-                <p className="text-blue-700">
-                  {comparison.newRegime.totalTax <
-                  comparison.oldRegime.totalTax ? (
-                    <>
-                      The New Tax Regime is better for you. You can save{" "}
-                      {formatCurrency(
-                        comparison.oldRegime.totalTax -
-                          comparison.newRegime.totalTax
-                      )}{" "}
-                      annually by choosing the new regime.
-                    </>
-                  ) : (
-                    <>
-                      The Old Tax Regime is better for you. You can save{" "}
-                      {formatCurrency(
-                        comparison.newRegime.totalTax -
-                          comparison.oldRegime.totalTax
-                      )}{" "}
-                      annually by choosing the old regime.
-                    </>
-                  )}
-                </p>
-                <div className="bg-white rounded-lg p-4 text-sm text-gray-600">
-                  <h4 className="font-medium text-gray-800 mb-2">
-                    Key Points:
-                  </h4>
-                  <ul className="space-y-2">
-                    <li>
-                      • New regime offers a higher standard deduction of ₹75,000
-                    </li>
-                    <li>
-                      • Old regime allows additional deductions under Chapter
-                      VI-A
-                    </li>
-                    <li>
-                      • Tax rebate under Section 87A applies up to ₹12,75,000
-                    </li>
-                    <li>
-                      • Consider your investment and insurance needs while
-                      choosing the regime
-                    </li>
-                  </ul>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                  <span className="text-gray-600">Exempt Allowances</span>
+                  <span className="font-medium">{formatCurrency(0)}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                  <span className="text-gray-600">Standard Deductions</span>
+                  <span className="font-medium">{formatCurrency(75000)}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                  <span className="text-gray-600">Chapter VI A Deductions</span>
+                  <span className="font-medium">
+                    {formatCurrency(calculateTotalDeductions())}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-6 rounded-xl hover:shadow-md transition-all duration-300">
+              <h3 className="text-lg font-semibold mb-6 text-gray-800">
+                Tax Calculation
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                  <span className="text-gray-600">Income Tax</span>
+                  <span className="font-medium">
+                    {formatCurrency(comparison.newRegime.basicTax)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                  <span className="text-gray-600">Surcharge</span>
+                  <span className="font-medium">{formatCurrency(0)}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                  <span className="text-gray-600">
+                    Health and Education Cess
+                  </span>
+                  <span className="font-medium">
+                    {formatCurrency(comparison.newRegime.cess)}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
-        );
-    }
+
+          <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-xl border border-green-200">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-full">
+                <PieChart className="w-5 h-5 text-green-600" />
+              </div>
+              <span className="text-green-800 font-medium">
+                New Tax Regime is recommended for you. It would save you{" "}
+                {formatCurrency(
+                  comparison.oldRegime.totalTax - comparison.newRegime.totalTax
+                )}{" "}
+                in taxes.
+              </span>
+            </div>
+            <div className="mt-3 text-sm text-gray-600 pl-10">
+              ITR filing due date: July 31, 2026 (subject to change)
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const StepIndicator = () => (
-    <div className="mb-8">
+    <div className="mb-12">
       <div className="flex justify-between mb-4">
         {steps.map((stepName, index) => (
           <div key={index} className="flex flex-col items-center relative">
             <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
                 index + 1 === step
-                  ? "bg-blue-500 text-white"
+                  ? "bg-blue-500 text-white shadow-lg scale-110"
                   : index + 1 < step
                   ? "bg-green-500 text-white"
-                  : "bg-gray-200"
+                  : "bg-gray-200 hover:bg-gray-300"
               }`}>
               {index + 1}
             </div>
-            <span className="text-sm mt-2 text-gray-600">{stepName}</span>
+            <span className="sm:text-sm mt-3 text-[8px] font-medium text-gray-600">
+              {stepName}
+            </span>
             {index < steps.length - 1 && (
               <div
-                className={`absolute top-5 left-full w-full h-0.5 -mx-2 ${
+                className={`absolute top-6 left-full w-full h-0.5 -mx-2 transition-colors duration-300 ${
                   index + 1 < step ? "bg-green-500" : "bg-gray-200"
                 }`}
               />
@@ -531,13 +595,28 @@ const TaxCalculator = () => {
     </div>
   );
 
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return renderBasicDetails();
+      case 2:
+        return renderIncomeDetails();
+      case 3:
+        return renderDeductions();
+      case 4:
+        return renderTaxSummary();
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="max-w-4xl min-h-screen pt-32 mx-auto p-6">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-blue-900 mb-2">
+    <div className="max-w-6xl min-h-screen pt-24 mx-auto p-6 ">
+      <div className="text-center mb-12">
+        <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 mb-4">
           Income Tax Calculator 2025-26
         </h1>
-        <p className="text-gray-600">
+        <p className="text-gray-600 text-lg">
           Compare your tax liability under both old and new tax regimes
         </p>
       </div>
@@ -549,14 +628,14 @@ const TaxCalculator = () => {
         <button
           onClick={() => setStep((prev) => Math.max(1, prev - 1))}
           disabled={step === 1}
-          className="px-6 cursor-pointer py-3 flex items-center gap-2 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Previous
+          className="px-8 cursor-pointer py-4 flex items-center gap-3 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium">
+          <ArrowLeft className="w-5 h-5" /> Previous
         </button>
         <button
           onClick={() => setStep((prev) => Math.min(4, prev + 1))}
           disabled={step === 4}
-          className="px-6 cursor-pointer py-3 flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-          {step === 3 ? "Calculate" : "Next"} <ArrowRight className="w-4 h-4" />
+          className="px-8 py-4 cursor-pointer flex items-center gap-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-md hover:shadow-lg">
+          {step === 3 ? "Calculate" : "Next"} <ArrowRight className="w-5 h-5" />
         </button>
       </div>
     </div>
