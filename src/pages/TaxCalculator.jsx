@@ -7,6 +7,15 @@ import {
   PieChart,
   Info,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 
 const TaxCalculator = () => {
   const [step, setStep] = useState(1);
@@ -185,7 +194,24 @@ const TaxCalculator = () => {
     };
   }, [calculateTaxableIncome, calculateNewRegimeTax, calculateOldRegimeTax]);
 
-  // Input component for better UX
+  const formatIndianNumber = (value) => {
+    // Remove any existing commas and non-numeric characters
+    const number = value.replace(/[^\d]/g, "");
+
+    // Handle empty or invalid input
+    if (!number) return "";
+
+    // Convert to Indian format
+    const lastThree = number.substring(number.length - 3);
+    const otherNumbers = number.substring(0, number.length - 3);
+    const formatted = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+    return formatted ? formatted + "," + lastThree : lastThree;
+  };
+
+  const unformatNumber = (value) => {
+    return value.replace(/[^\d]/g, "");
+  };
+
   const InputField = ({
     label,
     value,
@@ -193,44 +219,71 @@ const TaxCalculator = () => {
     icon: Icon,
     tooltip,
     prefix,
-    type = "number",
+    type = "text",
     disabled = false,
-  }) => (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
-        {label}
-        {tooltip && (
-          <div className="group relative">
-            <Info className="w-4 h-4 text-gray-400 cursor-help" />
-            <div className="hidden group-hover:block absolute z-10 w-64 p-2 bg-gray-800 text-white text-xs rounded-lg -top-2 left-6">
-              {tooltip}
+  }) => {
+    // Format the displayed value
+    const displayValue =
+      typeof value === "string" ? formatIndianNumber(value) : "";
+
+    return (
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+          {label}
+          {tooltip && (
+            <div className="group relative">
+              <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              <div className="hidden group-hover:block absolute z-10 w-64 p-2 bg-gray-800 text-white text-xs rounded-lg -top-2 left-6">
+                {tooltip}
+              </div>
             </div>
-          </div>
-        )}
-      </label>
-      <div className="relative">
-        {prefix && (
-          <span className="absolute left-3 top-3 text-gray-500">{prefix}</span>
-        )}
-        {Icon && (
-          <Icon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-        )}
-        <input
-          type={type}
-          value={value}
-          onChange={onChange}
-          className={`w-full p-3 ${
-            prefix ? "pl-8" : Icon ? "pl-10" : "pl-3"
-          } border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:bg-gray-50 transition-colors ${
-            disabled ? "bg-gray-100 cursor-not-allowed" : ""
-          }`}
-          placeholder={`Enter ${label.toLowerCase()}`}
-          disabled={disabled}
-          min="0"
-        />
+          )}
+        </label>
+        <div className="relative">
+          {prefix && (
+            <span className="absolute left-3 top-3 text-gray-500">
+              {prefix}
+            </span>
+          )}
+          {Icon && (
+            <Icon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+          )}
+          <input
+            type={type}
+            value={displayValue}
+            onChange={onChange}
+            className={`w-full p-3 ${
+              prefix ? "pl-8" : Icon ? "pl-10" : "pl-3"
+            } border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:bg-gray-50 transition-colors ${
+              disabled ? "bg-gray-100 cursor-not-allowed" : ""
+            } [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+            placeholder={`Enter ${label.toLowerCase()}`}
+            disabled={disabled}
+            inputMode="numeric"
+          />
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const handleNumberInput = (e, setter, field, parentField) => {
+    const rawValue = unformatNumber(e.target.value);
+
+    if (parentField) {
+      setter((prev) => ({
+        ...prev,
+        [parentField]: {
+          ...prev[parentField],
+          [field]: rawValue,
+        },
+      }));
+    } else {
+      setter((prev) => ({
+        ...prev,
+        [field]: rawValue,
+      }));
+    }
+  };
 
   const steps = [
     "Basic Details",
@@ -239,267 +292,245 @@ const TaxCalculator = () => {
     "Tax Summary",
   ];
 
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <Calculator className="w-6 h-6 text-blue-500" />
-              <h2 className="text-xl font-semibold">Basic Details</h2>
-            </div>
-            <div className="space-y-6">
-              <InputField
-                label="Age"
-                value={basicDetails.age}
-                onChange={(e) =>
-                  setBasicDetails({ ...basicDetails, age: e.target.value })
-                }
-                tooltip="Your age as of the assessment year"
-                type="number"
-              />
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Financial Year
-                </label>
-                <select
-                  value={basicDetails.financialYear}
-                  onChange={(e) =>
-                    setBasicDetails({
-                      ...basicDetails,
-                      financialYear: e.target.value,
-                    })
-                  }
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
-                  <option value="2025-26">2025-26</option>
-                </select>
+  const renderBasicDetails = () => (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="flex items-center gap-2 mb-6">
+        <Calculator className="w-6 h-6 text-blue-500" />
+        <h2 className="text-xl font-semibold">Basic Details</h2>
+      </div>
+      <div className="space-y-6">
+        <InputField
+          label="Age"
+          value={basicDetails.age}
+          onChange={(e) => handleNumberInput(e, setBasicDetails, "age")}
+          tooltip="Your age as of the assessment year"
+          type="number"
+        />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Financial Year
+          </label>
+          <select
+            value={basicDetails.financialYear}
+            onChange={(e) =>
+              setBasicDetails({
+                ...basicDetails,
+                financialYear: e.target.value,
+              })
+            }
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+            <option value="2025-26">2025-26</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderIncomeDetails = () => (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="flex items-center gap-2 mb-6">
+        <IndianRupee className="w-6 h-6 text-blue-500" />
+        <h2 className="text-xl font-semibold">Income Details</h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {Object.entries(incomeDetails).map(([key, value]) => (
+          <InputField
+            key={key}
+            label={key
+              .replace(/([A-Z])/g, " $1")
+              .replace(/^./, (str) => str.toUpperCase())}
+            value={value}
+            onChange={(e) => handleNumberInput(e, setIncomeDetails, key)}
+            prefix="₹"
+            tooltip={`Enter your ${key
+              .replace(/([A-Z])/g, " $1")
+              .toLowerCase()} for the financial year`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderDeductions = () => (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="flex items-center gap-2 mb-6">
+        <PieChart className="w-6 h-6 text-blue-500" />
+        <h2 className="text-xl font-semibold">Deductions</h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {Object.entries(deductions).map(([key, value]) => (
+          <InputField
+            key={key}
+            label={key
+              .replace(/([A-Z])/g, " $1")
+              .replace(/^./, (str) => str.toUpperCase())}
+            value={value}
+            onChange={(e) => handleNumberInput(e, setDeductions, key)}
+            prefix="₹"
+            tooltip={`Maximum deduction under ${key}: ${
+              key === "section80C"
+                ? "₹1,50,000"
+                : key === "section80D"
+                ? "₹1,00,000"
+                : key === "section80EEA"
+                ? "₹1,50,000"
+                : "As applicable"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderTaxSummary = () => {
+    const comparison = calculateTaxComparison();
+
+    const chartData = [
+      {
+        name: "Total Income",
+        value: comparison.newRegime.taxableIncome + calculateTotalDeductions(),
+        color: "#E3F2FD",
+      },
+      {
+        name: "Taxable Income",
+        value: comparison.newRegime.taxableIncome,
+        color: "#90CAF9",
+      },
+      {
+        name: "Deductions",
+        value: calculateTotalDeductions(),
+        color: "#1976D2",
+      },
+      {
+        name: "Tax Payable",
+        value: comparison.newRegime.totalTax,
+        color: "#4CAF50",
+      },
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Summary - FY 2025-2026 (AY 2026-2027)
+            </h2>
+            <a href="/calculator" className="flex gap-4">
+              <button className="text-blue-500 cursor-pointer hover:text-blue-600">
+                Recalculate
+              </button>
+            </a>
+          </div>
+
+          <div className="flex gap-8">
+            {/* Left side - Chart */}
+            <div className="w-1/2">
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={chartData}
+                    layout="vertical"
+                    margin={{ top: 0, right: 0, left: 40, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" />
+                    <Bar dataKey="value" fill="#8884d8">
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
-          </div>
-        );
 
-      case 2:
-        return (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <IndianRupee className="w-6 h-6 text-blue-500" />
-              <h2 className="text-xl font-semibold">Income Details</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {Object.entries(incomeDetails).map(([key, value]) => (
-                <InputField
-                  key={key}
-                  label={key
-                    .replace(/([A-Z])/g, " $1")
-                    .replace(/^./, (str) => str.toUpperCase())}
-                  value={value}
-                  onChange={(e) =>
-                    setIncomeDetails({
-                      ...incomeDetails,
-                      [key]: Number(e.target.value),
-                    })
-                  }
-                  prefix="₹"
-                  tooltip={`Enter your ${key
-                    .replace(/([A-Z])/g, " $1")
-                    .toLowerCase()} for the financial year`}
-                />
-              ))}
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center gap-2 mb-6">
-              <PieChart className="w-6 h-6 text-blue-500" />
-              <h2 className="text-xl font-semibold">Deductions</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {Object.entries(deductions).map(([key, value]) => (
-                <InputField
-                  key={key}
-                  label={key
-                    .replace(/([A-Z])/g, " $1")
-                    .replace(/^./, (str) => str.toUpperCase())}
-                  value={value}
-                  onChange={(e) =>
-                    setDeductions({
-                      ...deductions,
-                      [key]: Number(e.target.value),
-                    })
-                  }
-                  prefix="₹"
-                  tooltip={`Maximum deduction under ${key}: ${
-                    key === "section80C"
-                      ? "₹1,50,000"
-                      : key === "section80D"
-                      ? "₹1,00,000"
-                      : key === "section80EEA"
-                      ? "₹1,50,000"
-                      : "As applicable"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        );
-
-      case 4:
-        const comparison = calculateTaxComparison();
-        return (
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* New Regime Card */}
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">New Tax Regime</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Taxable Income</span>
-                    <span className="font-medium">
-                      {formatCurrency(comparison.newRegime.taxableIncome)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Tax Amount</span>
-                    <span className="font-medium">
-                      {formatCurrency(comparison.newRegime.totalTax)}
-                    </span>
-                  </div>
+            {/* Right side - Details */}
+            <div className="w-1/2 space-y-6">
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold mb-4">Total Income</h3>
+                <div className="text-3xl font-bold text-gray-900">
+                  {formatCurrency(
+                    comparison.newRegime.taxableIncome +
+                      calculateTotalDeductions()
+                  )}
                 </div>
               </div>
 
-              {/* Old Regime Card */}
-              <div className="bg-white rounded-lg shadow-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Old Tax Regime</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Taxable Income</span>
-                    <span className="font-medium">
-                      {formatCurrency(comparison.oldRegime.taxableIncome)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Tax Amount</span>
-                    <span className="font-medium">
-                      {formatCurrency(comparison.oldRegime.totalTax)}
-                    </span>
-                  </div>
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold mb-4">Taxable Income</h3>
+                <div className="text-3xl font-bold text-gray-900">
+                  {formatCurrency(comparison.newRegime.taxableIncome)}
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold mb-4">Tax Payable</h3>
+                <div className="text-3xl font-bold text-gray-900">
+                  {formatCurrency(comparison.newRegime.totalTax)}
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Detailed Breakdown */}
-            <div className="bg-white rounded-lg shadow-lg p-6">
+          {/* Detailed Breakdown */}
+          <div className="mt-8 grid grid-cols-2 gap-8">
+            <div>
               <h3 className="text-lg font-semibold mb-4">
-                Detailed Tax Breakdown
-              </h3>
-              <div className="space-y-6">
-                {["new", "old"].map((regime) => {
-                  const taxData =
-                    regime === "new"
-                      ? comparison.newRegime
-                      : comparison.oldRegime;
-                  return (
-                    <div key={regime} className="space-y-4">
-                      <h4 className="font-medium">
-                        {regime === "new" ? "New" : "Old"} Regime Calculation
-                      </h4>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        {taxData.breakdown.map((slab, index) => (
-                          <div
-                            key={index}
-                            className="grid grid-cols-4 gap-4 text-sm py-2">
-                            <span>{slab.range}</span>
-                            <span>{formatCurrency(slab.income)}</span>
-                            <span>{slab.rate}%</span>
-                            <span className="text-right">
-                              {formatCurrency(slab.tax)}
-                            </span>
-                          </div>
-                        ))}
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <span>Basic Tax</span>
-                            <span className="text-right">
-                              {formatCurrency(taxData.basicTax)}
-                            </span>
-                            <span>Rebate (87A)</span>
-                            <span className="text-right text-red-600">
-                              -{formatCurrency(taxData.rebate)}
-                            </span>
-                            <span>Health & Education Cess (4%)</span>
-                            <span className="text-right">
-                              {formatCurrency(taxData.cess)}
-                            </span>
-                            <span className="font-medium">Total Tax</span>
-                            <span className="text-right font-medium">
-                              {formatCurrency(taxData.totalTax)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Recommendation Card */}
-            <div className="bg-blue-50 rounded-lg shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-blue-800 mb-4">
-                Tax Saving Recommendation
+                Exemption and Deduction
               </h3>
               <div className="space-y-4">
-                <p className="text-blue-700">
-                  {comparison.newRegime.totalTax <
-                  comparison.oldRegime.totalTax ? (
-                    <>
-                      The New Tax Regime is better for you. You can save{" "}
-                      {formatCurrency(
-                        comparison.oldRegime.totalTax -
-                          comparison.newRegime.totalTax
-                      )}{" "}
-                      annually by choosing the new regime.
-                    </>
-                  ) : (
-                    <>
-                      The Old Tax Regime is better for you. You can save{" "}
-                      {formatCurrency(
-                        comparison.newRegime.totalTax -
-                          comparison.oldRegime.totalTax
-                      )}{" "}
-                      annually by choosing the old regime.
-                    </>
-                  )}
-                </p>
-                <div className="bg-white rounded-lg p-4 text-sm text-gray-600">
-                  <h4 className="font-medium text-gray-800 mb-2">
-                    Key Points:
-                  </h4>
-                  <ul className="space-y-2">
-                    <li>
-                      • New regime offers a higher standard deduction of ₹75,000
-                    </li>
-                    <li>
-                      • Old regime allows additional deductions under Chapter
-                      VI-A
-                    </li>
-                    <li>
-                      • Tax rebate under Section 87A applies up to ₹12,75,000
-                    </li>
-                    <li>
-                      • Consider your investment and insurance needs while
-                      choosing the regime
-                    </li>
-                  </ul>
+                <div className="flex justify-between">
+                  <span>Exempt Allowances</span>
+                  <span>{formatCurrency(0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Standard Deductions</span>
+                  <span>{formatCurrency(75000)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Chapter VI A Deductions</span>
+                  <span>{formatCurrency(calculateTotalDeductions())}</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Tax Calculation</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <span>Income Tax</span>
+                  <span>{formatCurrency(comparison.newRegime.basicTax)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Surcharge</span>
+                  <span>{formatCurrency(0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Health and Education Cess</span>
+                  <span>{formatCurrency(comparison.newRegime.cess)}</span>
                 </div>
               </div>
             </div>
           </div>
-        );
-    }
+
+          {/* Recommendation */}
+          <div className="mt-8 bg-green-50 p-4 rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="text-green-600">
+                New Tax Regime is recommended for you. It would save you{" "}
+                {formatCurrency(
+                  comparison.oldRegime.totalTax - comparison.newRegime.totalTax
+                )}{" "}
+                in taxes.
+              </span>
+            </div>
+            <div className="mt-2 text-sm text-gray-600">
+              ITR filing due date: July 31, 2026 (subject to change)
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const StepIndicator = () => (
@@ -531,8 +562,23 @@ const TaxCalculator = () => {
     </div>
   );
 
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return renderBasicDetails();
+      case 2:
+        return renderIncomeDetails();
+      case 3:
+        return renderDeductions();
+      case 4:
+        return renderTaxSummary();
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="max-w-4xl min-h-screen pt-32 mx-auto p-6">
+    <div className="max-w-6xl min-h-screen pt-32 mx-auto p-6">
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold text-blue-900 mb-2">
           Income Tax Calculator 2025-26
