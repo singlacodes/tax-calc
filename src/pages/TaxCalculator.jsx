@@ -468,7 +468,7 @@ const TaxCalculator = () => {
                 <BarChart
                   data={chartData}
                   layout="vertical"
-                  margin={{ top: 20, right: 20, left: 40, bottom: 20 }}>
+                  margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                   <XAxis
                     type="number"
