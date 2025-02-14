@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   ArrowRight,
   ArrowLeft,
@@ -18,6 +18,88 @@ import {
   Tooltip as RechartsTooltip,
 } from "recharts";
 
+// Separate numeric input component without formatting
+const NumericInput = ({
+  value,
+  onChange,
+  placeholder,
+  className,
+  disabled = false,
+}) => {
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      value={value}
+      onChange={(e) => {
+        const numericValue = e.target.value.replace(/[^\d]/g, "");
+        onChange(numericValue);
+      }}
+      className={className}
+      placeholder={placeholder}
+      disabled={disabled}
+    />
+  );
+};
+
+// Formatted display component
+const FormattedValue = ({ value }) => {
+  const formattedValue = useMemo(() => {
+    if (!value) return "₹0";
+    const number = parseInt(value, 10);
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(number);
+  }, [value]);
+
+  return <div className="text-sm text-gray-600 mt-1">{formattedValue}</div>;
+};
+
+const InputField = ({
+  label,
+  value,
+  onChange,
+  icon: Icon,
+  tooltip,
+  disabled = false,
+}) => {
+  return (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+        {label}
+        {tooltip && (
+          <div className="group/tooltip relative">
+            <Info className="w-4 h-4 text-blue-400 cursor-help" />
+            <div className="hidden group-hover/tooltip:block absolute z-10 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg -top-2 left-6">
+              {tooltip}
+            </div>
+          </div>
+        )}
+      </label>
+      <div className="relative">
+        {Icon && (
+          <Icon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+        )}
+        <NumericInput
+          value={value}
+          onChange={onChange}
+          placeholder={`Enter ${label.toLowerCase()}`}
+          className={`w-full p-3 ${
+            Icon ? "pl-10" : "pl-3"
+          } border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white ${
+            disabled ? "bg-gray-100" : ""
+          }`}
+          disabled={disabled}
+        />
+        <FormattedValue value={value} />
+      </div>
+    </div>
+  );
+};
+
 const TaxCalculator = () => {
   const [step, setStep] = useState(1);
   const [basicDetails, setBasicDetails] = useState({
@@ -26,30 +108,47 @@ const TaxCalculator = () => {
   });
 
   const [incomeDetails, setIncomeDetails] = useState({
-    salary: 0,
-    hra: 0,
-    lta: 0,
-    professionalTax: 0,
-    interestIncome: 0,
-    rentalIncome: 0,
-    homeLoanInterest: 0,
+    salary: "",
+    hra: "",
+    lta: "",
+    professionalTax: "",
+    interestIncome: "",
+    rentalIncome: "",
+    homeLoanInterest: "",
   });
 
   const [deductions, setDeductions] = useState({
-    section80C: 0,
-    section80D: 0,
-    section80G: 0,
-    section80EEA: 0,
-    otherDeductions: 0,
+    section80C: "",
+    section80D: "",
+    section80G: "",
+    section80EEA: "",
+    otherDeductions: "",
   });
+
+  const handleNumberInput = (setter, field) => (value) => {
+    setter((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
   // Calculate total deductions with caps
   const calculateTotalDeductions = useCallback(() => {
-    const totalSection80C = Math.min(deductions.section80C, 150000);
-    const totalSection80D = Math.min(deductions.section80D, 100000);
-    const totalSection80EEA = Math.min(deductions.section80EEA, 150000);
+    const totalSection80C = Math.min(
+      Number(deductions.section80C) || 0,
+      150000
+    );
+    const totalSection80D = Math.min(
+      Number(deductions.section80D) || 0,
+      100000
+    );
+    const totalSection80EEA = Math.min(
+      Number(deductions.section80EEA) || 0,
+      150000
+    );
     const totalOtherDeductions =
-      deductions.section80G + deductions.otherDeductions;
+      (Number(deductions.section80G) || 0) +
+      (Number(deductions.otherDeductions) || 0);
 
     return (
       Math.min(
@@ -63,25 +162,16 @@ const TaxCalculator = () => {
   }, [deductions]);
 
   const calculateTotalIncome = useCallback(() => {
-    const totalIncome =
-      Number(incomeDetails.salary) +
-      Number(incomeDetails.hra) +
-      Number(incomeDetails.lta) +
-      Number(incomeDetails.interestIncome) +
-      Number(incomeDetails.rentalIncome);
-
-    return totalIncome;
+    return Object.values(incomeDetails).reduce(
+      (sum, value) => sum + (Number(value) || 0),
+      0
+    );
   }, [incomeDetails]);
 
   // Calculate taxable income for both regimes
   const calculateTaxableIncome = useCallback(
     (regime) => {
-      const totalIncome =
-        Number(incomeDetails.salary) +
-        Number(incomeDetails.hra) +
-        Number(incomeDetails.lta) +
-        Number(incomeDetails.interestIncome) +
-        Number(incomeDetails.rentalIncome);
+      const totalIncome = calculateTotalIncome();
 
       if (regime === "new") {
         const standardDeduction = 75000;
@@ -89,7 +179,7 @@ const TaxCalculator = () => {
           0,
           totalIncome -
             standardDeduction -
-            Number(incomeDetails.professionalTax)
+            (Number(incomeDetails.professionalTax) || 0)
         );
       } else {
         const standardDeduction = 50000;
@@ -98,12 +188,12 @@ const TaxCalculator = () => {
           0,
           totalIncome -
             standardDeduction -
-            Number(incomeDetails.professionalTax) -
+            (Number(incomeDetails.professionalTax) || 0) -
             totalDeductions
         );
       }
     },
-    [incomeDetails, calculateTotalDeductions]
+    [incomeDetails, calculateTotalDeductions, calculateTotalIncome]
   );
 
   // Calculate tax for new regime
@@ -188,75 +278,6 @@ const TaxCalculator = () => {
     }).format(amount);
   };
 
-  const formatIndianNumber = (value) => {
-    // Remove any existing commas and non-numeric characters
-    const number = value.replace(/[^\d]/g, "");
-    if (!number) return "";
-    const lastThree = number.substring(number.length - 3);
-    const otherNumbers = number.substring(0, number.length - 3);
-    const formatted = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
-    return formatted ? formatted + "," + lastThree : lastThree;
-  };
-
-  const InputField = ({
-    label,
-    value,
-    onChange,
-    icon: Icon,
-    tooltip,
-    prefix,
-    type = "text",
-    disabled = false,
-  }) => {
-    // Fix cursor position issue by maintaining raw value in state
-    const [inputValue, setInputValue] = useState(value.toString());
-
-    // Handle input change while maintaining cursor position
-    const handleChange = (e) => {
-      const rawValue = e.target.value.replace(/[^\d]/g, "");
-      setInputValue(rawValue);
-      onChange({ target: { value: rawValue } });
-    };
-
-    return (
-      <div className="space-y-2 group transition-all duration-200">
-        <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
-          {label}
-          {tooltip && (
-            <div className="group/tooltip relative">
-              <Info className="w-4 h-4 text-blue-400 cursor-help transition-colors group-hover/tooltip:text-blue-500" />
-              <div className="hidden group-hover/tooltip:block absolute z-10 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg -top-2 left-6 shadow-xl">
-                {tooltip}
-              </div>
-            </div>
-          )}
-        </label>
-        <div className="relative">
-          {prefix && (
-            <span className="absolute left-3 top-3 text-gray-500 group-hover:text-gray-700 transition-colors">
-              {prefix}
-            </span>
-          )}
-          {Icon && (
-            <Icon className="absolute left-3 top-3 w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
-          )}
-          <input
-            type="text"
-            value={formatIndianNumber(inputValue)}
-            onChange={handleChange}
-            className={`w-full p-3 ${
-              prefix ? "pl-8" : Icon ? "pl-10" : "pl-3"
-            } border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white hover:bg-blue-50/30 transition-all duration-200 ${
-              disabled ? "bg-gray-100 cursor-not-allowed" : ""
-            } outline-none shadow-sm hover:shadow-md`}
-            placeholder={`Enter ${label.toLowerCase()}`}
-            disabled={disabled}
-          />
-        </div>
-      </div>
-    );
-  };
-
   // Calculate tax comparison
   const calculateTaxComparison = useCallback(() => {
     const newRegimeIncome = calculateTaxableIncome("new");
@@ -277,23 +298,8 @@ const TaxCalculator = () => {
     };
   }, [calculateTaxableIncome, calculateNewRegimeTax, calculateOldRegimeTax]);
 
-  const handleNumberInput = (e, setter, field) => {
-    const rawValue = e.target.value;
-    setter((prev) => ({
-      ...prev,
-      [field]: rawValue,
-    }));
-  };
-
-  const steps = [
-    "Basic Details",
-    "Income Details",
-    "Deductions",
-    "Tax Summary",
-  ];
-
   const renderBasicDetails = () => (
-    <div className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white rounded-xl shadow-lg p-8">
       <div className="flex items-center gap-3 mb-8">
         <div className="p-3 bg-blue-100 rounded-lg">
           <Calculator className="w-6 h-6 text-blue-600" />
@@ -301,13 +307,14 @@ const TaxCalculator = () => {
         <h2 className="text-2xl font-semibold text-gray-800">Basic Details</h2>
       </div>
       <div className="space-y-8">
-        <InputField
-          label="Age"
-          value={basicDetails.age}
-          onChange={(e) => handleNumberInput(e, setBasicDetails, "age")}
-          tooltip="Your age as of the assessment year"
-          type="text"
-        />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">Age</label>
+          <input
+            type="text"
+            className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter age (18-60)"
+          />
+        </div>
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">
             Financial Year
@@ -320,7 +327,7 @@ const TaxCalculator = () => {
                 financialYear: e.target.value,
               })
             }
-            className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white hover:bg-blue-50/30 transition-all duration-200">
+            className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
             <option value="2025-26">2025-26</option>
           </select>
         </div>
@@ -329,7 +336,7 @@ const TaxCalculator = () => {
   );
 
   const renderIncomeDetails = () => (
-    <div className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white rounded-xl shadow-lg p-8">
       <div className="flex items-center gap-3 mb-8">
         <div className="p-3 bg-green-100 rounded-lg">
           <IndianRupee className="w-6 h-6 text-green-600" />
@@ -344,8 +351,8 @@ const TaxCalculator = () => {
               .replace(/([A-Z])/g, " $1")
               .replace(/^./, (str) => str.toUpperCase())}
             value={value}
-            onChange={(e) => handleNumberInput(e, setIncomeDetails, key)}
-            prefix="₹"
+            onChange={handleNumberInput(setIncomeDetails, key)}
+            icon={IndianRupee}
             tooltip={`Enter your ${key
               .replace(/([A-Z])/g, " $1")
               .toLowerCase()} for the financial year`}
@@ -356,7 +363,7 @@ const TaxCalculator = () => {
   );
 
   const renderDeductions = () => (
-    <div className="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow duration-300">
+    <div className="bg-white rounded-xl shadow-lg p-8">
       <div className="flex items-center gap-3 mb-8">
         <div className="p-3 bg-purple-100 rounded-lg">
           <PieChart className="w-6 h-6 text-purple-600" />
@@ -371,8 +378,8 @@ const TaxCalculator = () => {
               .replace(/([A-Z])/g, " $1")
               .replace(/^./, (str) => str.toUpperCase())}
             value={value}
-            onChange={(e) => handleNumberInput(e, setDeductions, key)}
-            prefix="₹"
+            onChange={handleNumberInput(setDeductions, key)}
+            icon={IndianRupee}
             tooltip={`Maximum deduction under ${key}: ${
               key === "section80C"
                 ? "₹1,50,000"
@@ -423,7 +430,6 @@ const TaxCalculator = () => {
         </div>
       </div>
     );
-
     const DetailCard = ({ title, items }) => (
       <div className="bg-white/50 backdrop-blur-sm p-6 rounded-2xl transition-all duration-300">
         <h3 className="text-md font-semibold mb-4 text-gray-800">{title}</h3>
@@ -464,7 +470,7 @@ const TaxCalculator = () => {
                 <BarChart
                   data={chartData}
                   layout="vertical"
-                  margin={{ top: 20, right: 20, left: 40, bottom: 20 }}>
+                  margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                   <XAxis
                     type="number"
@@ -578,6 +584,13 @@ const TaxCalculator = () => {
     );
   };
 
+  const steps = [
+    "Basic Details",
+    "Income Details",
+    "Deductions",
+    "Tax Summary",
+  ];
+
   const StepIndicator = () => (
     <div className="mb-12">
       <div className="flex justify-between mb-4">
@@ -625,7 +638,7 @@ const TaxCalculator = () => {
   };
 
   return (
-    <div className="max-w-6xl min-h-screen pt-24 mx-auto p-6 ">
+    <div className="max-w-6xl min-h-screen pt-24 mx-auto p-6">
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 mb-4">
           Income Tax Calculator 2025-26
