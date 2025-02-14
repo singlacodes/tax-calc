@@ -307,12 +307,14 @@ const TaxCalculator = () => {
         <h2 className="text-2xl font-semibold text-gray-800">Basic Details</h2>
       </div>
       <div className="space-y-8">
-        <InputField
-          label="Age"
-          value={basicDetails.age}
-          onChange={handleNumberInput(setBasicDetails, "age")}
-          tooltip="Your age as of the assessment year"
-        />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">Age</label>
+          <input
+            type="text"
+            className="w-full p-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Enter age (18-60)"
+          />
+        </div>
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">
             Financial Year
